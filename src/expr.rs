@@ -44,6 +44,7 @@ pub mod limit;
 pub mod literal;
 pub mod logical_node;
 pub mod projection;
+pub mod repartition;
 pub mod scalar_variable;
 pub mod sort;
 pub mod table_scan;
@@ -209,5 +210,6 @@ pub(crate) fn init_module(m: &PyModule) -> PyResult<()> {
     m.add_class::<sort::PySort>()?;
     m.add_class::<analyze::PyAnalyze>()?;
     m.add_class::<empty_relation::PyEmptyRelation>()?;
+    m.add_class::<repartition::Repartition>()?;
     Ok(())
 }
