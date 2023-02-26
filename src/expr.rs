@@ -30,29 +30,49 @@ use crate::expr::literal::PyLiteral;
 use datafusion::scalar::ScalarValue;
 
 use self::alias::PyAlias;
+use self::bool_expr::{
+    PyIsFalse, PyIsNotFalse, PyIsNotNull, PyIsNotTrue, PyIsNotUnknown, PyIsNull, PyIsTrue,
+    PyIsUnknown, PyNegative, PyNot,
+};
+use self::like::{PyILike, PyLike, PySimilarTo};
 use self::scalar_variable::PyScalarVariable;
 
 pub mod aggregate;
 pub mod aggregate_expr;
 pub mod alias;
 pub mod analyze;
+pub mod between;
 pub mod binary_expr;
+pub mod bool_expr;
+pub mod case;
+pub mod cast;
 pub mod column;
 pub mod empty_relation;
+pub mod exists;
 pub mod filter;
+pub mod grouping_set;
+pub mod in_list;
+pub mod in_subquery;
+pub mod indexed_field;
+pub mod like;
 pub mod limit;
 pub mod literal;
 pub mod logical_node;
+pub mod placeholder;
 pub mod projection;
 pub mod repartition;
+pub mod scalar_function;
+pub mod scalar_subquery;
 pub mod scalar_variable;
+pub mod signature;
 pub mod sort;
+pub mod subquery;
 pub mod table_scan;
 
 /// A PyExpr that can be used on a DataFrame
 #[pyclass(name = "Expr", module = "datafusion.expr", subclass)]
 #[derive(Debug, Clone)]
-pub(crate) struct PyExpr {
+pub struct PyExpr {
     pub(crate) expr: Expr,
 }
 
@@ -80,6 +100,16 @@ impl PyExpr {
             }
             Expr::Literal(value) => Ok(PyLiteral::from(value.clone()).into_py(py)),
             Expr::BinaryExpr(expr) => Ok(PyBinaryExpr::from(expr.clone()).into_py(py)),
+            Expr::Not(expr) => Ok(PyNot::new(*expr.clone()).into_py(py)),
+            Expr::IsNotNull(expr) => Ok(PyIsNotNull::new(*expr.clone()).into_py(py)),
+            Expr::IsNull(expr) => Ok(PyIsNull::new(*expr.clone()).into_py(py)),
+            Expr::IsTrue(expr) => Ok(PyIsTrue::new(*expr.clone()).into_py(py)),
+            Expr::IsFalse(expr) => Ok(PyIsFalse::new(*expr.clone()).into_py(py)),
+            Expr::IsUnknown(expr) => Ok(PyIsUnknown::new(*expr.clone()).into_py(py)),
+            Expr::IsNotTrue(expr) => Ok(PyIsNotTrue::new(*expr.clone()).into_py(py)),
+            Expr::IsNotFalse(expr) => Ok(PyIsNotFalse::new(*expr.clone()).into_py(py)),
+            Expr::IsNotUnknown(expr) => Ok(PyIsNotUnknown::new(*expr.clone()).into_py(py)),
+            Expr::Negative(expr) => Ok(PyNegative::new(*expr.clone()).into_py(py)),
             Expr::AggregateFunction(expr) => {
                 Ok(PyAggregateFunction::from(expr.clone()).into_py(py))
             }
@@ -199,8 +229,35 @@ pub(crate) fn init_module(m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBinaryExpr>()?;
     m.add_class::<PyLiteral>()?;
     m.add_class::<PyAggregateFunction>()?;
+    m.add_class::<PyNot>()?;
+    m.add_class::<PyIsNotNull>()?;
+    m.add_class::<PyIsNull>()?;
+    m.add_class::<PyIsTrue>()?;
+    m.add_class::<PyIsFalse>()?;
+    m.add_class::<PyIsUnknown>()?;
+    m.add_class::<PyIsNotTrue>()?;
+    m.add_class::<PyIsNotFalse>()?;
+    m.add_class::<PyIsNotUnknown>()?;
+    m.add_class::<PyNegative>()?;
+    m.add_class::<PyLike>()?;
+    m.add_class::<PyILike>()?;
+    m.add_class::<PySimilarTo>()?;
     m.add_class::<PyScalarVariable>()?;
     m.add_class::<alias::PyAlias>()?;
+    m.add_class::<scalar_function::PyScalarFunction>()?;
+    m.add_class::<scalar_function::PyBuiltinScalarFunction>()?;
+    m.add_class::<in_list::PyInList>()?;
+    m.add_class::<exists::PyExists>()?;
+    m.add_class::<subquery::PySubquery>()?;
+    m.add_class::<in_subquery::PyInSubquery>()?;
+    m.add_class::<scalar_subquery::PyScalarSubquery>()?;
+    m.add_class::<placeholder::PyPlaceholder>()?;
+    m.add_class::<grouping_set::PyGroupingSet>()?;
+    m.add_class::<case::PyCase>()?;
+    m.add_class::<cast::PyCast>()?;
+    m.add_class::<cast::PyTryCast>()?;
+    m.add_class::<between::PyBetween>()?;
+    m.add_class::<indexed_field::PyGetIndexedField>()?;
     // operators
     m.add_class::<table_scan::PyTableScan>()?;
     m.add_class::<projection::PyProjection>()?;
@@ -210,6 +267,6 @@ pub(crate) fn init_module(m: &PyModule) -> PyResult<()> {
     m.add_class::<sort::PySort>()?;
     m.add_class::<analyze::PyAnalyze>()?;
     m.add_class::<empty_relation::PyEmptyRelation>()?;
-    m.add_class::<repartition::Repartition>()?;
+    m.add_class::<repartition::PyRepartition>()?;
     Ok(())
 }
